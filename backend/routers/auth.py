@@ -34,6 +34,17 @@ def get_serializer():
     return URLSafeTimedSerializer(secret_key, salt="dochub-auth-salt")
 
 
+# Giữ đối tượng serializer tương thích ngược cho các module khác
+class _SerializerProxy:
+    def loads(self, *args, **kwargs):
+        return get_serializer().loads(*args, **kwargs)
+
+    def dumps(self, *args, **kwargs):
+        return get_serializer().dumps(*args, **kwargs)
+
+serializer = _SerializerProxy()
+
+
 class LoginRequest(BaseModel):
     username: str
     password: str
