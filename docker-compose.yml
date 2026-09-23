@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  dochub:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lab-dochub-app-01
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - DB_PATH=/app/data/dochub.db
+      - STORAGE_PATH=/app/data/storage
+      - BACKUP_STAGING_PATH=/app/data/backups

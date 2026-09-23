@@ -1,17 +1,45 @@
-import React from 'react';
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { Dashboard } from "@/components/Dashboard";
+import { LoginPage } from "@/components/LoginPage";
+import { PublicShareView } from "@/components/PublicShareView";
+import { Toaster } from "@/components/ui/sonner";
+
+const AuthenticatedArea: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-background font-sans">
+        <div className="text-sm text-muted-foreground animate-pulse">Đang tải DocHub...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  return <Dashboard />;
+};
 
 export default function App() {
   return (
-    <div className="flex h-screen w-screen flex-col items-center justify-center bg-background p-4 text-center">
-      <div className="max-w-md space-y-4 rounded-xl border bg-card p-8 shadow-sm">
-        <h1 className="text-3xl font-bold tracking-tight text-primary">DocHub</h1>
-        <p className="text-sm text-muted-foreground">
-          Markdown & HTML Knowledge Base & Presentation Tool.
-        </p>
-        <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-          Frontend đang chạy với <strong>React + Vite + Tailwind CSS + shadcn/ui</strong> và font chữ <strong>Be Vietnam Pro</strong>.
-        </div>
-      </div>
-    </div>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Trang xem công khai Read-only cho khách hàng qua link chia sẻ */}
+          <Route path="/s/:shareId" element={<PublicShareView />} />
+
+          {/* Vùng quản trị và soạn thảo chính (yêu cầu đăng nhập) */}
+          <Route path="/" element={<AuthenticatedArea />} />
+
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <Toaster position="bottom-right" richColors />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

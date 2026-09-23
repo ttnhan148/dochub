@@ -76,3 +76,40 @@ async def suggest_tags_and_category(
     except Exception as e:
         print(f"[-] Lỗi AI suggest tags: {e}")
     return []
+
+
+async def translate_content(
+    api_base_url: str,
+    api_key: str,
+    model_name: str,
+    content: str,
+    target_lang: str = "English",
+    doc_type: str = "markdown",
+) -> str:
+    """Dịch nội dung văn bản sang ngôn ngữ đích, bảo toàn cấu trúc Markdown hoặc HTML"""
+    url = f"{api_base_url.rstrip('/')}/chat/completions"
+    headers = _build_headers(api_key)
+
+    system_instruction = (
+        f"Bạn là dịch giả tài liệu chuyên nghiệp. Hãy dịch nội dung sang tiếng {target_lang}.\n"
+        f"YÊU CẦU QUAN TRỌNG: Giữ nguyên 100% định dạng {doc_type.upper()}, các thẻ HTML, block code, "
+        f"công thức KaTeX/LaTeX, diagram Mermaid, và các URL/link ảnh. Chỉ dịch phần văn bản hiển thị. "
+        f"Không tự ý thêm lời chào hay giải thích nào khác."
+    )
+
+    payload = {
+        "model": model_name,
+        "messages": [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": content},
+        ],
+        "temperature": 0.2,
+    }
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.post(url, headers=headers, json=payload)
+        if response.status_code != 200:
+            raise Exception(f"AI endpoint trả về lỗi {response.status_code}: {response.text[:200]}")
+        res_data = response.json()
+        return res_data["choices"][0]["message"]["content"].strip()
+
