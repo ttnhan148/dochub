@@ -4,7 +4,17 @@ Khởi tạo database SQLite, FTS5, scheduler sao lưu định kỳ và đăng k
 """
 
 import os
+from pathlib import Path
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+# Tải cấu hình biến môi trường từ .env (ưu tiên root repo, sau đó tới backend/.env)
+_env_path = Path(__file__).resolve().parent.parent / ".env"
+if _env_path.exists():
+    load_dotenv(dotenv_path=_env_path)
+else:
+    load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

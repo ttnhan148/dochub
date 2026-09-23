@@ -12,14 +12,26 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-APP_USERNAME = os.getenv("APP_USERNAME", "admin")
-APP_PASSWORD_HASH = os.getenv("APP_PASSWORD_HASH", "")
-SECRET_KEY = os.getenv("SECRET_KEY", "dochub-insecure-dev-secret-key-please-change-in-env")
+from dotenv import load_dotenv
+
+# Đảm bảo .env được nạp
+load_dotenv()
 
 COOKIE_NAME = "dochub_session"
 SESSION_MAX_AGE = 30 * 24 * 3600  # 30 ngày
 
-serializer = URLSafeTimedSerializer(SECRET_KEY, salt="dochub-auth-salt")
+
+def get_auth_config():
+    """Lấy cấu hình xác thực từ biến môi trường runtime"""
+    username = os.getenv("APP_USERNAME", "admin")
+    password_hash = os.getenv("APP_PASSWORD_HASH", "")
+    secret_key = os.getenv("SECRET_KEY", "dochub-insecure-dev-secret-key-please-change-in-env")
+    return username, password_hash, secret_key
+
+
+def get_serializer():
+    _, _, secret_key = get_auth_config()
+    return URLSafeTimedSerializer(secret_key, salt="dochub-auth-salt")
 
 
 class LoginRequest(BaseModel):
@@ -49,10 +61,12 @@ def get_current_user(request: Request) -> str:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Chưa đăng nhập hoặc phiên làm việc không tồn tại",
         )
+    username, _, _ = get_auth_config()
+    serializer = get_serializer()
     try:
         data = serializer.loads(session_token, max_age=SESSION_MAX_AGE)
         user = data.get("user")
-        if not user or user != APP_USERNAME:
+        if not user or user != username:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Phiên làm việc không hợp lệ",
@@ -73,20 +87,22 @@ def get_current_user(request: Request) -> str:
 @router.post("/login", response_model=UserResponse)
 async def login(req: LoginRequest, response: Response):
     """Xác thực thông tin đăng nhập và cấp session cookie an toàn"""
-    if not APP_PASSWORD_HASH:
+    username, password_hash, _ = get_auth_config()
+    if not password_hash:
         # Nếu chưa cấu hình mật khẩu trong .env
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Chưa thiết lập APP_PASSWORD_HASH trong cấu hình hệ thống.",
         )
 
-    if req.username != APP_USERNAME or not verify_password(req.password, APP_PASSWORD_HASH):
+    if req.username != username or not verify_password(req.password, password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Tên đăng nhập hoặc mật khẩu không chính xác",
         )
 
-    token = serializer.dumps({"user": APP_USERNAME})
+    serializer = get_serializer()
+    token = serializer.dumps({"user": username})
     response.set_cookie(
         key=COOKIE_NAME,
         value=token,
@@ -95,7 +111,7 @@ async def login(req: LoginRequest, response: Response):
         samesite="lax",
         secure=False,  # Cho phép hoạt động qua HTTP trong môi trường lab/dev hoặc reverse proxy SSL termination
     )
-    return UserResponse(username=APP_USERNAME, authenticated=True)
+    return UserResponse(username=username, authenticated=True)
 
 
 @router.post("/logout")
