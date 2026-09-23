@@ -1,0 +1,19 @@
+# DocHub Cursor Rules
+
+You are an expert AI software engineer assisting in the development of DocHub.
+Before executing tasks, review `AGENTS.md` and `docs/PROGRESS.md` for current project state.
+
+## Core Rules & Architecture
+1. **Primary Storage is Local:** Store markdown/HTML content and uploaded assets locally in `/app/data/storage/` (Docker) or `../data/storage/` (local dev). Do not connect to Azure Blob Storage for live requests.
+2. **Azure Blob is for Backup Only:** Only use Azure Blob Storage in `backend/backup.py` for scheduled tar.gz snapshot uploads (30-day retention).
+3. **No Heavy ORMs:** Use SQLite with raw SQL or lightweight async wrappers (`aiosqlite`). Do not add SQLAlchemy ORM models. Always use `get_db_connection()` helper from `backend.db` which enforces WAL mode, `busy_timeout` and `PRAGMA foreign_keys = ON;`.
+4. **FTS5 Full-Text Search:** Use SQLite FTS5 table `documents_fts` with `tokenize='unicode61 remove_diacritics 0'` for blazing fast text searching with Vietnamese diacritics preserved.
+5. **Frontend Stack:** React (Vite + TypeScript) + Tailwind CSS + shadcn/ui components (`react-resizable-panels` for Split-view, `cmdk` for search palette, `diff` for version diff).
+6. **Typography:** The primary UI and reading font must be **Be Vietnam Pro**. Monospace fonts (`JetBrains Mono`/`Fira Code`) for code.
+7. **HTML Sandbox Security:** HTML documents must be rendered in `<iframe sandbox="allow-scripts">` to prevent XSS. **NEVER add `allow-same-origin`** to avoid session cookie exfiltration.
+8. **Path Traversal Protection:** Always resolve and validate storage paths via `_resolve_safe_path` in `backend/storage.py`.
+
+## Coding Style
+- **Python:** Type hints, async FastAPI routers, clean docstrings, Pydantic schemas for request/response validation.
+- **TypeScript:** Strict types, reusable component architecture, Lucide React icons, Tailwind utility classes.
+- **Handoff:** Keep `docs/PROGRESS.md` updated with completed tasks and next steps.

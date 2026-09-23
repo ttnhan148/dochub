@@ -1,0 +1,2 @@
+# Thư mục chứa dữ liệu runtime của DocHub (SQLite DB và Local Storage)
+# Tệp này giữ thư mục trên Git; dữ liệu thực tế được loại trừ qua .gitignore
